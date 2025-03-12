@@ -27,6 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let rocketTimer = null;
     let lastRocketTime = 0;
     const ROCKET_INTERVAL = 7000; // 7 seconds
+    let countdownActive = false;
+    let countdownValue = 3;
+    let countdownTimer = null;
     
     // Keyboard state tracking
     const keys = {
@@ -164,6 +167,69 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, { passive: false });
     
+    // Function to start the countdown
+    function startCountdown() {
+        countdownActive = true;
+        countdownValue = 3;
+        
+        // Create countdown display
+        const countdownDisplay = document.createElement('div');
+        countdownDisplay.id = 'countdown';
+        countdownDisplay.textContent = countdownValue;
+        countdownDisplay.style.position = 'absolute';
+        countdownDisplay.style.top = '50%';
+        countdownDisplay.style.left = '50%';
+        countdownDisplay.style.transform = 'translate(-50%, -50%)';
+        countdownDisplay.style.fontSize = '100px';
+        countdownDisplay.style.color = 'white';
+        countdownDisplay.style.textShadow = '0 0 10px #000';
+        countdownDisplay.style.zIndex = '1000';
+        document.body.appendChild(countdownDisplay);
+        
+        // Update countdown every second
+        countdownTimer = setInterval(() => {
+            countdownValue--;
+            
+            if (countdownValue > 0) {
+                countdownDisplay.textContent = countdownValue;
+                // Make the countdown pulse
+                countdownDisplay.style.animation = 'none';
+                setTimeout(() => {
+                    countdownDisplay.style.animation = 'pulse 0.5s';
+                }, 10);
+            } else if (countdownValue === 0) {
+                countdownDisplay.textContent = 'GO!';
+                countdownDisplay.style.color = '#39FF14'; // Bright green
+                // Add scale animation for GO!
+                countdownDisplay.style.animation = 'scale 0.5s';
+            } else {
+                clearInterval(countdownTimer);
+                document.body.removeChild(countdownDisplay);
+                countdownActive = false;
+                
+                // Start the game
+                gameRunning = true;
+                animationId = requestAnimationFrame(gameLoop);
+            }
+        }, 1000);
+    }
+    
+    // Add styles for countdown animations
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.2); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+        @keyframes scale {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.5); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+    `;
+    document.head.appendChild(style);
+    
     // Start/Restart game button
     startButton.addEventListener('click', () => {
         // First, capture the current state
@@ -176,6 +242,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (animationId !== null) {
             cancelAnimationFrame(animationId);
             animationId = null;
+        }
+        
+        // Cancel any existing countdown
+        if (countdownTimer) {
+            clearInterval(countdownTimer);
+            const existingCountdown = document.getElementById('countdown');
+            if (existingCountdown) {
+                document.body.removeChild(existingCountdown);
+            }
+            countdownActive = false;
         }
         
         // Immediately clear the canvas to provide visual feedback
@@ -194,11 +270,8 @@ document.addEventListener('DOMContentLoaded', () => {
             drawPaddle(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height, rightPaddle.color);
             drawBall(ball.x, ball.y, ball.radius, ball.color);
             
-            // Set a timeout before restarting to ensure the DOM has updated
-            setTimeout(() => {
-                gameRunning = true;
-                animationId = requestAnimationFrame(gameLoop);
-            }, 50);
+            // Start countdown instead of immediately starting the game
+            startCountdown();
         }, 100);
     });
     
@@ -211,6 +284,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (animationId !== null) {
             cancelAnimationFrame(animationId);
             animationId = null;
+        }
+        
+        // Cancel any existing countdown
+        if (countdownTimer) {
+            clearInterval(countdownTimer);
+            const existingCountdown = document.getElementById('countdown');
+            if (existingCountdown) {
+                document.body.removeChild(existingCountdown);
+            }
+            countdownActive = false;
         }
         
         // Immediately clear the canvas for visual feedback
@@ -229,11 +312,8 @@ document.addEventListener('DOMContentLoaded', () => {
             drawPaddle(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height, rightPaddle.color);
             drawBall(ball.x, ball.y, ball.radius, ball.color);
             
-            // Delay the actual game start
-            setTimeout(() => {
-                gameRunning = true;
-                animationId = requestAnimationFrame(gameLoop);
-            }, 50);
+            // Start countdown instead of immediately starting the game
+            startCountdown();
         }, 100);
     });
     
@@ -399,8 +479,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function launchRocket() {
         if (rocket.active || rocket.explosionActive) return; // Don't launch if one is already active
         
-        // Random target (1 or 2)
-        rocket.targetPlayer = Math.random() < 0.5 ? 1 : 2;
+        if (!isTwoPlayerMode) {
+            // In one player mode, always target player 1
+            rocket.targetPlayer = 1;
+        } else {
+            // In two player mode, alternate between player 1 and 2
+            rocket.targetPlayer = (lastRocketTime === 0 || rocket.targetPlayer === 2) ? 1 : 2;
+        }
         
         if (rocket.targetPlayer === 1) {
             // Rocket coming from right side of screen to target player 1
@@ -758,6 +843,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 player1Score = Math.max(0, player1Score - 5);
                 score1Display.textContent = player1Score;
                 
+                // Show a penalty message
+                showPenaltyMessage("PLAYER 1 MISS! -5 POINTS");
+                
                 // Check if player 2 wins
                 if (player2Score >= winScore) {
                     showWinScreen(2);
@@ -766,8 +854,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 resetBall();
             } else {
-                // Game over in one player mode
-                gameOver();
+                // In one player mode, subtract 3 points and continue
+                player1Score = Math.max(0, player1Score - 3);
+                score1Display.textContent = player1Score;
+                
+                // Show a penalty message
+                showPenaltyMessage("MISS! -3 POINTS");
+                
+                // Reset ball position and continue
+                resetBall();
             }
         }
         
@@ -777,6 +872,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Player 2 loses 5 points for missing the ball
                 player2Score = Math.max(0, player2Score - 5);
                 score2Display.textContent = player2Score;
+                
+                // Show a penalty message
+                showPenaltyMessage("PLAYER 2 MISS! -5 POINTS");
                 
                 // Check if player 1 wins
                 if (player1Score >= winScore) {
@@ -792,13 +890,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Reset ball after scoring (only in two-player mode)
+    // Reset ball after scoring (now used in both game modes)
     function resetBall() {
         ball.x = canvas.width / 2;
         ball.y = canvas.height / 2;
         ball.speedX = ball.baseSpeed * (Math.random() > 0.5 ? 1 : -1);
         ball.speedY = ball.baseSpeed * (Math.random() > 0.5 ? 1 : -1);
         // Keep the speed multiplier to maintain game intensity
+    }
+    
+    // Function to show a temporary penalty message
+    function showPenaltyMessage(message) {
+        const penaltyMsg = document.createElement('div');
+        penaltyMsg.textContent = message;
+        penaltyMsg.style.position = 'absolute';
+        penaltyMsg.style.top = '30%';
+        penaltyMsg.style.left = '50%';
+        penaltyMsg.style.transform = 'translate(-50%, -50%)';
+        penaltyMsg.style.color = 'red';
+        penaltyMsg.style.fontSize = '36px';
+        penaltyMsg.style.fontWeight = 'bold';
+        penaltyMsg.style.textShadow = '0 0 10px black';
+        penaltyMsg.style.zIndex = '1000';
+        document.body.appendChild(penaltyMsg);
+        
+        // Make the message fade out
+        penaltyMsg.style.transition = 'opacity 1s ease-in';
+        setTimeout(() => {
+            penaltyMsg.style.opacity = '0';
+            setTimeout(() => {
+                document.body.removeChild(penaltyMsg);
+            }, 1000);
+        }, 1000);
     }
     
     // Update AI paddle position (only used in one-player mode)
@@ -880,8 +1003,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Main game loop
     function gameLoop() {
-        // If game isn't running anymore, don't continue
-        if (!gameRunning) {
+        // If game isn't running anymore or countdown is active, don't update game state
+        if (!gameRunning || countdownActive) {
             // Do not cancel animation frame here - this would create a race condition
             // with the restart logic which needs to control the animation frame lifecycle
             return;
