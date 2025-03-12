@@ -4,6 +4,16 @@ A fun Pong game with single-player and two-player modes!
 
 ## How to Play
 
+### Play Online (Recommended)
+
+Visit the game at: https://YOUR-USERNAME.github.io/pong-game/
+
+Simply type this URL in your browser to play instantly, no download required!
+
+### Play Offline
+
+If you prefer to play offline:
+
 1. Download and extract the ZIP file
 2. Open the `index.html` file in your browser:
    - Double-click the file
