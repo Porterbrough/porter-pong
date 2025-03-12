@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let animationId;
     let isTwoPlayerMode = false;
     const winScore = 10;
+    let rocketTimer = null;
+    let lastRocketTime = 0;
+    const ROCKET_INTERVAL = 7000; // 7 seconds
     
     // Keyboard state tracking
     const keys = {
@@ -54,6 +57,25 @@ document.addEventListener('DOMContentLoaded', () => {
         speedMultiplier: 1.0, // Global speed multiplier that increases over time
         color: '#FFF',
         emoji: '😊'  // Smiley face emoji
+    };
+    
+    // Rocket properties
+    const rocket = {
+        x: 0,
+        y: 0,
+        width: 30,
+        height: 20,
+        active: false,
+        speed: 8,
+        targetPlayer: 1, // 1 or 2 to indicate which player is targeted
+        emoji: '🚀',
+        explosionEmoji: '💥',
+        explosionRadius: 50,
+        explosionActive: false,
+        explosionX: 0,
+        explosionY: 0,
+        explosionTime: 0,
+        explosionDuration: 1000 // 1 second for explosion animation
     };
     
     // Right paddle properties (AI in 1P mode, Player 2 in 2P mode)
@@ -233,6 +255,141 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.setLineDash([]);
     }
     
+    // Draw rocket
+    function drawRocket() {
+        if (rocket.active) {
+            ctx.font = `${rocket.width}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(rocket.emoji, rocket.x, rocket.y);
+        }
+        
+        // Draw explosion if active
+        if (rocket.explosionActive) {
+            const explosionProgress = (Date.now() - rocket.explosionTime) / rocket.explosionDuration;
+            
+            // Pulsing size based on explosion progress
+            const size = rocket.explosionRadius * (1 + Math.sin(explosionProgress * Math.PI * 3) * 0.3);
+            
+            ctx.font = `${size}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(rocket.explosionEmoji, rocket.explosionX, rocket.explosionY);
+            
+            // End explosion animation after duration
+            if (Date.now() > rocket.explosionTime + rocket.explosionDuration) {
+                rocket.explosionActive = false;
+                
+                // Show game over for the player who was hit
+                showRocketLoseScreen(rocket.targetPlayer);
+            }
+        }
+    }
+    
+    // Launch a rocket
+    function launchRocket() {
+        if (rocket.active || rocket.explosionActive) return; // Don't launch if one is already active
+        
+        // Random target (1 or 2)
+        rocket.targetPlayer = Math.random() < 0.5 ? 1 : 2;
+        
+        if (rocket.targetPlayer === 1) {
+            // Rocket coming from right
+            rocket.x = canvas.width;
+            rocket.y = Math.random() * canvas.height;
+            rocket.speed = -8; // Move left
+        } else {
+            // Rocket coming from left
+            rocket.x = 0;
+            rocket.y = Math.random() * canvas.height;
+            rocket.speed = 8; // Move right
+        }
+        
+        rocket.active = true;
+        lastRocketTime = Date.now();
+    }
+    
+    // Update rocket position
+    function updateRocket() {
+        if (!rocket.active) {
+            // Check if it's time to launch a new rocket
+            if (gameRunning && Date.now() > lastRocketTime + ROCKET_INTERVAL) {
+                launchRocket();
+            }
+            return;
+        }
+        
+        // Update position
+        if (rocket.targetPlayer === 1) {
+            rocket.x += rocket.speed; // Move left
+        } else {
+            rocket.x += rocket.speed; // Move right
+        }
+        
+        // Check for paddle collisions
+        if (rocket.targetPlayer === 1 && 
+            rocket.x <= paddle.x + paddle.width && 
+            rocket.y >= paddle.y && 
+            rocket.y <= paddle.y + paddle.height) {
+            // Collision with left paddle (player 1)
+            rocketHit(1);
+        } else if (rocket.targetPlayer === 2 && 
+                  rocket.x >= rightPaddle.x - rocket.width/2 && 
+                  rocket.y >= rightPaddle.y && 
+                  rocket.y <= rightPaddle.y + rightPaddle.height) {
+            // Collision with right paddle (player 2)
+            rocketHit(2);
+        }
+        
+        // Check if rocket is off screen (missed)
+        if ((rocket.targetPlayer === 1 && rocket.x < 0) || 
+            (rocket.targetPlayer === 2 && rocket.x > canvas.width)) {
+            rocket.active = false;
+        }
+    }
+    
+    // Handle rocket hit
+    function rocketHit(playerNumber) {
+        // Start explosion
+        rocket.explosionActive = true;
+        rocket.explosionTime = Date.now();
+        rocket.explosionX = playerNumber === 1 ? paddle.x : rightPaddle.x;
+        rocket.explosionY = playerNumber === 1 ? paddle.y + paddle.height/2 : rightPaddle.y + rightPaddle.height/2;
+        
+        // Deactivate rocket
+        rocket.active = false;
+    }
+    
+    // Show lose screen for rocket hit
+    function showRocketLoseScreen(playerNumber) {
+        gameRunning = false;
+        
+        if (animationId) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+        
+        // Set the winner text (other player wins)
+        if (isTwoPlayerMode) {
+            const winner = playerNumber === 1 ? 2 : 1;
+            winnerText.textContent = `PLAYER ${winner} WINS!`;
+            winnerMessage.textContent = `Player ${playerNumber}'s paddle was destroyed by a rocket!`;
+        } else {
+            // In one player mode
+            if (playerNumber === 1) {
+                winnerText.textContent = 'GAME OVER!';
+                winnerMessage.textContent = 'Your paddle was destroyed by a rocket!';
+            } else {
+                winnerText.textContent = 'YOU WIN!';
+                winnerMessage.textContent = 'The AI paddle was destroyed by a rocket!';
+            }
+        }
+        
+        // Show win screen
+        winScreen.setAttribute('style', 'display: flex !important; visibility: visible !important');
+        startButton.textContent = 'Start New Game';
+    }
+    
     // Reset game state
     function resetGame() {
         // Ensure any existing animation is cancelled
@@ -257,6 +414,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Reset paddle positions
         paddle.y = canvas.height / 2 - paddle.height / 2;
         rightPaddle.y = canvas.height / 2 - rightPaddle.height / 2;
+        
+        // Reset rocket
+        rocket.active = false;
+        rocket.explosionActive = false;
+        lastRocketTime = Date.now();
         
         // Clear the canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -547,6 +709,10 @@ document.addEventListener('DOMContentLoaded', () => {
         drawPaddle(paddle.x, paddle.y, paddle.width, paddle.height, paddle.color);
         drawPaddle(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height, rightPaddle.color);
         drawBall(ball.x, ball.y, ball.radius, ball.color);
+        
+        // Update and draw rocket
+        updateRocket();
+        drawRocket();
         
         // Update ball position, applying the global speed multiplier
         ball.x += ball.speedX * ball.speedMultiplier;
