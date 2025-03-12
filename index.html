@@ -8,7 +8,9 @@
 </head>
 <body>
     <div class="game-container">
-        <canvas id="pong"></canvas>
+        <div class="canvas-container">
+            <canvas id="pong"></canvas>
+        </div>
         <div class="score-container">
             <div class="score">Player 1: <span id="score1">0</span></div>
             <div class="score">Player 2: <span id="score2">0</span></div>
@@ -16,8 +18,31 @@
         <div class="mode-selector">
             <button id="onePlayerButton" class="mode-button active">1 Player</button>
             <button id="twoPlayerButton" class="mode-button">2 Players</button>
+            <button id="emojiButton" class="mode-button">Ball Emoji</button>
         </div>
         <button id="startButton">Start Game</button>
+        
+        <!-- Emoji selection modal -->
+        <div id="emojiModal" class="emoji-modal">
+            <div class="emoji-modal-content">
+                <span class="close-modal">&times;</span>
+                <h3>Choose Ball Emoji</h3>
+                <div class="emoji-grid">
+                    <div class="emoji-option" data-emoji="😊">😊</div>
+                    <div class="emoji-option" data-emoji="🎾">🎾</div>
+                    <div class="emoji-option" data-emoji="⚽">⚽</div>
+                    <div class="emoji-option" data-emoji="🏀">🏀</div>
+                    <div class="emoji-option" data-emoji="⚾">⚾</div>
+                    <div class="emoji-option" data-emoji="🏐">🏐</div>
+                    <div class="emoji-option" data-emoji="🎯">🎯</div>
+                    <div class="emoji-option" data-emoji="🍎">🍎</div>
+                    <div class="emoji-option" data-emoji="🍊">🍊</div>
+                    <div class="emoji-option" data-emoji="😎">😎</div>
+                    <div class="emoji-option" data-emoji="🤔">🤔</div>
+                    <div class="emoji-option" data-emoji="👽">👽</div>
+                </div>
+            </div>
+        </div>
         <div class="instructions">
             <h2>How to Play:</h2>
             <div id="onePlayerInstructions">
