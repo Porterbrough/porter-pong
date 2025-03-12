@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameRunning = false;
     let animationId;
     let isTwoPlayerMode = false;
-    const winScore = 20;
+    const winScore = 10;
     
     // Keyboard state tracking
     const keys = {
@@ -380,10 +380,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Set the winner text based on the mode and winning player
         if (isTwoPlayerMode) {
             winnerText.textContent = `PLAYER ${winningPlayer} WINS!`;
-            winnerMessage.textContent = `Player ${winningPlayer} reached 20 points first!`;
+            winnerMessage.textContent = `Player ${winningPlayer} reached 10 points first!`;
         } else {
             winnerText.textContent = 'YOU WIN!';
-            winnerMessage.textContent = 'You reached 20 points! Amazing job!';
+            winnerMessage.textContent = 'You reached 10 points! Amazing job!';
         }
         
         // Override any CSS rules to ensure it's visible
