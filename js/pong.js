@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
         speedX: 5,
         speedY: 5,
         baseSpeed: 5, // Base speed for reset
+        speedMultiplier: 1.0, // Global speed multiplier that increases over time
         color: '#FFF',
         emoji: '😊'  // Smiley face emoji
     };
@@ -135,25 +136,77 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, { passive: false });
     
-    // Start game button
+    // Start/Restart game button
     startButton.addEventListener('click', () => {
-        if (!gameRunning) {
+        // First, capture the current state
+        const wasRunning = gameRunning;
+        
+        // Stop the game
+        gameRunning = false;
+        
+        // Cancel any existing animation frame
+        if (animationId !== null) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+        
+        // Immediately clear the canvas to provide visual feedback
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Use a clean two-step process with explicit delayed restart
+        setTimeout(() => {
+            // Complete reset of game state
             resetGame();
-            gameRunning = true;
             startButton.textContent = 'Restart Game';
             winScreen.style.display = 'none';
-            gameLoop();
-        } else {
-            resetGame();
-        }
+            
+            // Draw initial state to show something is happening
+            drawNet();
+            drawPaddle(paddle.x, paddle.y, paddle.width, paddle.height, paddle.color);
+            drawPaddle(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height, rightPaddle.color);
+            drawBall(ball.x, ball.y, ball.radius, ball.color);
+            
+            // Set a timeout before restarting to ensure the DOM has updated
+            setTimeout(() => {
+                gameRunning = true;
+                animationId = requestAnimationFrame(gameLoop);
+            }, 50);
+        }, 100);
     });
     
     // Play again button (in win screen)
     playAgainButton.addEventListener('click', () => {
-        resetGame();
-        gameRunning = true;
-        winScreen.style.display = 'none';
-        gameLoop();
+        // Make sure game is stopped
+        gameRunning = false;
+        
+        // Cancel any existing animation frame
+        if (animationId !== null) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+        
+        // Immediately clear the canvas for visual feedback
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Use the same reliable two-step restart pattern
+        setTimeout(() => {
+            // Complete reset
+            resetGame();
+            winScreen.style.display = 'none';
+            startButton.textContent = 'Restart Game';
+            
+            // Draw initial state
+            drawNet();
+            drawPaddle(paddle.x, paddle.y, paddle.width, paddle.height, paddle.color);
+            drawPaddle(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height, rightPaddle.color);
+            drawBall(ball.x, ball.y, ball.radius, ball.color);
+            
+            // Delay the actual game start
+            setTimeout(() => {
+                gameRunning = true;
+                animationId = requestAnimationFrame(gameLoop);
+            }, 50);
+        }, 100);
     });
     
     // Draw functions
@@ -182,22 +235,31 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Reset game state
     function resetGame() {
+        // Ensure any existing animation is cancelled
+        if (animationId) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+        
+        // Reset scores
         player1Score = 0;
         player2Score = 0;
         score1Display.textContent = player1Score;
         score2Display.textContent = player2Score;
         
+        // Reset ball position and properties
         ball.x = canvas.width / 2;
         ball.y = canvas.height / 2;
         ball.speedX = ball.baseSpeed * (Math.random() > 0.5 ? 1 : -1);
         ball.speedY = ball.baseSpeed * (Math.random() > 0.5 ? 1 : -1);
+        ball.speedMultiplier = 1.0; // Reset the speed multiplier
         
+        // Reset paddle positions
         paddle.y = canvas.height / 2 - paddle.height / 2;
         rightPaddle.y = canvas.height / 2 - rightPaddle.height / 2;
         
-        if (animationId) {
-            cancelAnimationFrame(animationId);
-        }
+        // Clear the canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
     
     // Collision detection
@@ -209,6 +271,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Slightly increase speed on wall bounces as well
             ball.speedY *= 1.03;
             ball.speedX *= 1.01;
+            
+            // Increase the global speed multiplier
+            ball.speedMultiplier *= 1.02;
         }
         
         // Player 1 (left) paddle collision
@@ -226,6 +291,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Increase speed slightly
             ball.speedX *= 1.05;
+            
+            // Increase global speed multiplier
+            ball.speedMultiplier *= 1.03;
             
             if (isTwoPlayerMode) {
                 // In two-player mode, player 1 scores a point when they hit the ball
@@ -285,6 +353,9 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 // In one player mode (against AI), increase speed on AI paddle hits
                 ball.speedX *= 1.08;
+                
+                // Increase global speed multiplier
+                ball.speedMultiplier *= 1.05;
             }
         }
         
@@ -335,6 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ball.y = canvas.height / 2;
         ball.speedX = ball.baseSpeed * (Math.random() > 0.5 ? 1 : -1);
         ball.speedY = ball.baseSpeed * (Math.random() > 0.5 ? 1 : -1);
+        // Keep the speed multiplier to maintain game intensity
     }
     
     // Update AI paddle position (only used in one-player mode)
@@ -367,15 +439,36 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Game over function
     function gameOver() {
+        // Stop the game
         gameRunning = false;
         startButton.textContent = 'Start New Game';
-        cancelAnimationFrame(animationId);
+        
+        // Make sure to cancel any existing animation frames
+        if (animationId) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+        
+        // Clear the canvas for visual feedback
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Redraw the static elements to show game is over
+        drawNet();
+        drawPaddle(paddle.x, paddle.y, paddle.width, paddle.height, paddle.color);
+        drawPaddle(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height, rightPaddle.color);
+        drawBall(ball.x, ball.y, ball.radius, ball.color);
     }
     
     // Win function
     function showWinScreen(winningPlayer) {
+        // Stop the game
         gameRunning = false;
-        cancelAnimationFrame(animationId);
+        
+        // Make sure to cancel any existing animation frames
+        if (animationId) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
         
         // Set the winner text based on the mode and winning player
         if (isTwoPlayerMode) {
@@ -386,13 +479,21 @@ document.addEventListener('DOMContentLoaded', () => {
             winnerMessage.textContent = 'You reached 10 points! Amazing job!';
         }
         
-        // Override any CSS rules to ensure it's visible
+        // Make sure the win screen is visible
         winScreen.setAttribute('style', 'display: flex !important; visibility: visible !important');
+        
+        // Reset button text for next game
+        startButton.textContent = 'Start New Game';
     }
     
     // Main game loop
     function gameLoop() {
-        if (!gameRunning) return;
+        // If game isn't running anymore, don't continue
+        if (!gameRunning) {
+            // Do not cancel animation frame here - this would create a race condition
+            // with the restart logic which needs to control the animation frame lifecycle
+            return;
+        }
         
         // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -447,9 +548,9 @@ document.addEventListener('DOMContentLoaded', () => {
         drawPaddle(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height, rightPaddle.color);
         drawBall(ball.x, ball.y, ball.radius, ball.color);
         
-        // Update ball position
-        ball.x += ball.speedX;
-        ball.y += ball.speedY;
+        // Update ball position, applying the global speed multiplier
+        ball.x += ball.speedX * ball.speedMultiplier;
+        ball.y += ball.speedY * ball.speedMultiplier;
         
         // Check for collisions
         collisionDetection();
@@ -459,8 +560,11 @@ document.addEventListener('DOMContentLoaded', () => {
             updateAI();
         }
         
-        // Continue the game loop
-        animationId = requestAnimationFrame(gameLoop);
+        // Continue the game loop if the game is still running
+        if (gameRunning) {
+            // Store the animation ID to allow proper cancellation
+            animationId = requestAnimationFrame(gameLoop);
+        }
     }
     
     // Draw the initial game state
