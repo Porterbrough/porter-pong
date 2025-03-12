@@ -55,6 +55,8 @@ document.addEventListener('DOMContentLoaded', () => {
         speedY: 5,
         baseSpeed: 5, // Base speed for reset
         speedMultiplier: 1.0, // Global speed multiplier that increases over time
+        maxSpeedMultiplier: 1.6, // Cap the maximum speed (60% faster than start)
+        incrementFactor: 0.01, // How much to increase on each hit (smaller = slower increase)
         color: '#FFF',
         emoji: '😊'  // Smiley face emoji
     };
@@ -430,12 +432,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ball.y - ball.radius <= 0 || ball.y + ball.radius >= canvas.height) {
             ball.speedY = -ball.speedY;
             
-            // Slightly increase speed on wall bounces as well
-            ball.speedY *= 1.03;
-            ball.speedX *= 1.01;
+            // Very slight increase on wall bounces (much less than before)
+            ball.speedY *= 1.01;
+            ball.speedX *= 1.005;
             
-            // Increase the global speed multiplier
-            ball.speedMultiplier *= 1.02;
+            // Increase the global speed multiplier with a cap
+            ball.speedMultiplier += ball.incrementFactor * 0.5; // Half the normal increment for walls
+            
+            // Cap the speed multiplier
+            if (ball.speedMultiplier > ball.maxSpeedMultiplier) {
+                ball.speedMultiplier = ball.maxSpeedMultiplier;
+            }
         }
         
         // Player 1 (left) paddle collision
@@ -451,11 +458,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const hitPosition = (ball.y - paddle.y) / paddle.height;
             ball.speedY = 10 * (hitPosition - 0.5);
             
-            // Increase speed slightly
-            ball.speedX *= 1.05;
+            // Very small speed increase for more controllable gameplay
+            ball.speedX *= 1.02;
             
-            // Increase global speed multiplier
-            ball.speedMultiplier *= 1.03;
+            // Increase global speed multiplier by a fixed increment
+            ball.speedMultiplier += ball.incrementFactor;
+            
+            // Cap the speed multiplier
+            if (ball.speedMultiplier > ball.maxSpeedMultiplier) {
+                ball.speedMultiplier = ball.maxSpeedMultiplier;
+            }
             
             if (isTwoPlayerMode) {
                 // In two-player mode, player 1 scores a point when they hit the ball
@@ -478,14 +490,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
                 
-                // Increase difficulty as score increases (one player mode only)
-                const speedIncrease = 1.0 + (player1Score / 10); // More noticeable speed increase
+                // Increase difficulty more gradually as score increases (one player mode only)
+                const speedIncrease = 1.0 + (player1Score / 15); // More gradual increase
                 const normalizedDirection = Math.sign(ball.speedX);
-                ball.speedX = ball.baseSpeed * speedIncrease * normalizedDirection;
                 
-                // Also increase Y speed for more unpredictable movement
+                // Clamp the speed increase to a reasonable value
+                const clampedIncrease = Math.min(speedIncrease, 1.4); // Maximum 40% increase
+                ball.speedX = ball.baseSpeed * clampedIncrease * normalizedDirection;
+                
+                // Also increase Y speed for more unpredictable movement, but more gradually
                 const yDirection = Math.sign(ball.speedY);
-                ball.speedY = (ball.baseSpeed * 0.8) * (1.0 + (player1Score / 20)) * yDirection;
+                ball.speedY = (ball.baseSpeed * 0.8) * (1.0 + (player1Score / 30)) * yDirection;
             }
         }
         
@@ -513,11 +528,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
             } else {
-                // In one player mode (against AI), increase speed on AI paddle hits
-                ball.speedX *= 1.08;
+                // In one player mode (against AI), small increase on AI paddle hits
+                ball.speedX *= 1.03;
                 
-                // Increase global speed multiplier
-                ball.speedMultiplier *= 1.05;
+                // Increase global speed multiplier slightly more than player hits
+                ball.speedMultiplier += ball.incrementFactor * 1.2;
+                
+                // Cap the speed multiplier
+                if (ball.speedMultiplier > ball.maxSpeedMultiplier) {
+                    ball.speedMultiplier = ball.maxSpeedMultiplier;
+                }
             }
         }
         
