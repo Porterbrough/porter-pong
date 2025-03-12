@@ -1,8 +1,21 @@
 # Development Guidelines
 
+## Project Structure
+- This game is located in the `isaac/` directory of the main repository
+- All game files are stored directly in this directory (no subdirectories)
+
 ## Running the App
-- Open `index.html` directly in a browser
+- **Local**: Open `index.html` directly in a browser
+- **Live Demo**: https://porterbrough.github.io/porter-pong/isaac/
 - For local development with live reload, consider using a tool like `live-server`
+
+## Git Workflow
+- Always pull changes before making edits: `git pull origin main`
+- After making changes: `git add . && git commit -m "Description of changes" && git push origin main`
+- Push to the `main` branch automatically deploys to GitHub Pages
+
+## Deployment
+- The site is published at: https://porterbrough.github.io/porter-pong/isaac/
 
 ## Code Style
 - **JavaScript**: Use ES6+ features, consistent indentation (2 spaces)
