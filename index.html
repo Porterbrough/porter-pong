@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pong Game</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="pong"></canvas>
+        <div class="score-container">
+            <div class="score">Player 1: <span id="score1">0</span></div>
+            <div class="score">Player 2: <span id="score2">0</span></div>
+        </div>
+        <div class="mode-selector">
+            <button id="onePlayerButton" class="mode-button active">1 Player</button>
+            <button id="twoPlayerButton" class="mode-button">2 Players</button>
+        </div>
+        <button id="startButton">Start Game</button>
+        <div class="instructions">
+            <h2>How to Play:</h2>
+            <div id="onePlayerInstructions">
+                <h3>One Player Mode:</h3>
+                <ul>
+                    <li>Use the <strong>Up</strong> and <strong>Down</strong> arrow keys to move your paddle</li>
+                    <li>Or use your <strong>mouse</strong> to control the paddle position</li>
+                    <li>Hit the ball with your paddle to score points</li>
+                    <li>Don't let the ball pass your paddle!</li>
+                    <li>Ball speed increases as your score rises</li>
+                    <li>Get to <strong>20 points</strong> to win!</li>
+                </ul>
+            </div>
+            <div id="twoPlayerInstructions" style="display: none;">
+                <h3>Two Player Mode:</h3>
+                <ul>
+                    <li><strong>Player 1 (Left):</strong> Use <strong>W</strong> and <strong>S</strong> keys to move up and down</li>
+                    <li><strong>Player 2 (Right):</strong> Use <strong>Up</strong> and <strong>Down</strong> arrow keys</li>
+                    <li>First player to reach <strong>20 points</strong> wins!</li>
+                </ul>
+            </div>
+        </div>
+        <div class="win-screen" id="winScreen">
+            <h1 id="winnerText">YOU WIN!</h1>
+            <p id="winnerMessage">You reached 20 points! Amazing job!</p>
+            <button id="playAgainButton">Play Again</button>
+        </div>
+    </div>
+    <script src="js/pong.js"></script>
+</body>
+</html>

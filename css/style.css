@@ -1,0 +1,166 @@
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f0f0f0;
+    font-family: Arial, sans-serif;
+}
+
+.game-container {
+    position: relative;
+    width: 600px;
+}
+
+canvas {
+    background-color: #000;
+    display: block;
+    border-radius: 5px;
+}
+
+.score-container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.score {
+    font-size: 20px;
+    color: #333;
+}
+
+.mode-selector {
+    display: flex;
+    justify-content: center;
+    margin-top: 15px;
+    gap: 10px;
+}
+
+.mode-button {
+    padding: 8px 15px;
+    font-size: 16px;
+    background-color: #e0e0e0;
+    color: #333;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mode-button:hover {
+    background-color: #d0d0d0;
+}
+
+.mode-button.active {
+    background-color: #4CAF50;
+    color: white;
+}
+
+#startButton {
+    margin-top: 15px;
+    padding: 10px 20px;
+    font-size: 18px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#startButton:hover {
+    background-color: #45a049;
+}
+
+.instructions {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #e9f7ef;
+    border-radius: 5px;
+    border-left: 4px solid #4CAF50;
+}
+
+.instructions h2 {
+    margin-top: 0;
+    color: #2e7d32;
+    font-size: 20px;
+}
+
+.instructions h3 {
+    color: #2e7d32;
+    font-size: 18px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.instructions ul {
+    padding-left: 20px;
+}
+
+.instructions li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.instructions strong {
+    color: #2e7d32;
+}
+
+.win-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    display: none !important; /* Force hide with !important */
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    border-radius: 5px;
+    visibility: hidden; /* Additional hiding property */
+}
+
+.win-screen h1 {
+    font-size: 48px;
+    margin-bottom: 20px;
+    color: #4CAF50;
+    text-shadow: 0 0 10px #4CAF50;
+    animation: pulse 1.5s infinite alternate;
+}
+
+.win-screen p {
+    font-size: 24px;
+    margin-bottom: 30px;
+}
+
+.win-screen button {
+    padding: 10px 20px;
+    font-size: 18px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.win-screen button:hover {
+    background-color: #45a049;
+}
+
+@keyframes pulse {
+    from {
+        transform: scale(1);
+        opacity: 1;
+    }
+    to {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+}
