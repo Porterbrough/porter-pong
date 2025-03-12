@@ -68,8 +68,10 @@ document.addEventListener('DOMContentLoaded', () => {
         width: 30,
         height: 20,
         active: false,
-        baseSpeed: 3.5, // Base horizontal speed (slower to allow for tracking)
-        trackingSpeed: 2, // How quickly it adjusts to follow the paddle
+        baseSpeed: 2.2, // Slower horizontal speed to make it more dodgeable
+        trackingSpeed: 1.3, // Reduced tracking speed to give players more chance to dodge
+        trackingDelay: 500, // Milliseconds before missile starts tracking (initial straight flight)
+        activationTime: 0, // When the rocket was launched
         targetPlayer: 1, // 1 or 2 to indicate which player is targeted
         emoji: '🚀',
         explosionEmoji: '💥',
@@ -262,12 +264,77 @@ document.addEventListener('DOMContentLoaded', () => {
     // Draw rocket
     function drawRocket() {
         if (rocket.active) {
-            ctx.save(); // Save current state
+            // Determine if the rocket is in tracking mode yet
+            const rocketAge = Date.now() - rocket.activationTime;
+            const isTracking = rocketAge > rocket.trackingDelay;
             
-            // Move to rocket position
+            // Draw targeting area (cone of possible tracking) to give visual feedback
+            if (isTracking) {
+                let targetX, targetY;
+                
+                if (rocket.targetPlayer === 1) {
+                    targetX = paddle.x;
+                    targetY = paddle.y + paddle.height / 2;
+                } else {
+                    targetX = rightPaddle.x;
+                    targetY = rightPaddle.y + rightPaddle.height / 2;
+                }
+                
+                // Draw tracking effect
+                ctx.save();
+                const gradient = ctx.createRadialGradient(
+                    rocket.x, rocket.y, 0,
+                    rocket.x, rocket.y, 100
+                );
+                gradient.addColorStop(0, 'rgba(255, 50, 50, 0.15)');
+                gradient.addColorStop(1, 'rgba(255, 50, 50, 0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(rocket.x, rocket.y, 100, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw targeting line (heat seeking visualization)
+                if (rocket.targetPlayer === 1) {
+                    // Targeting left paddle
+                    ctx.strokeStyle = 'rgba(255, 0, 0, 0.2)'; // Transparent red
+                    ctx.setLineDash([5, 5]); // Dashed line
+                    ctx.beginPath();
+                    ctx.moveTo(rocket.x, rocket.y);
+                    ctx.lineTo(targetX, targetY);
+                    ctx.stroke();
+                    ctx.setLineDash([]); // Reset dash
+                } else {
+                    // Targeting right paddle
+                    ctx.strokeStyle = 'rgba(255, 0, 0, 0.2)'; // Transparent red
+                    ctx.setLineDash([5, 5]); // Dashed line
+                    ctx.beginPath();
+                    ctx.moveTo(rocket.x, rocket.y);
+                    ctx.lineTo(targetX, targetY);
+                    ctx.stroke();
+                    ctx.setLineDash([]); // Reset dash
+                }
+                ctx.restore();
+            } else {
+                // Straight flight indicator
+                ctx.save();
+                ctx.strokeStyle = 'rgba(255, 255, 0, 0.2)'; // Yellow for non-tracking
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(rocket.x, rocket.y);
+                if (rocket.targetPlayer === 1) {
+                    ctx.lineTo(0, rocket.y); // Straight line to left
+                } else {
+                    ctx.lineTo(canvas.width, rocket.y); // Straight line to right
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.restore();
+            }
+            
+            // Draw the rocket emoji with rotation
+            ctx.save();
             ctx.translate(rocket.x, rocket.y);
-            
-            // Rotate based on direction
             ctx.rotate(rocket.rotation * Math.PI / 180);
             
             // Draw the rocket emoji
@@ -276,31 +343,33 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.textBaseline = 'middle';
             ctx.fillText(rocket.emoji, 0, 0);
             
-            // Draw a small flame trail behind the rocket
+            // Draw a flame trail behind the rocket
             ctx.font = `${rocket.width * 0.6}px Arial`;
-            ctx.fillText('🔥', -rocket.width * 0.6, 0);
             
-            ctx.restore(); // Restore canvas state
+            // Pulsing flame for visual effect
+            const flamePulse = 0.8 + Math.sin(Date.now() / 100) * 0.2;
+            ctx.scale(flamePulse, flamePulse);
+            ctx.fillText('🔥', -rocket.width * 0.6 / flamePulse, 0);
             
-            // Draw targeting line (heat seeking visualization)
-            if (rocket.targetPlayer === 1) {
-                // Targeting left paddle
-                ctx.strokeStyle = 'rgba(255, 0, 0, 0.2)'; // Transparent red
-                ctx.setLineDash([5, 5]); // Dashed line
-                ctx.beginPath();
-                ctx.moveTo(rocket.x, rocket.y);
-                ctx.lineTo(paddle.x, paddle.y + paddle.height/2);
-                ctx.stroke();
-                ctx.setLineDash([]); // Reset dash
+            ctx.restore();
+            
+            // Add tracking indicator
+            if (isTracking) {
+                ctx.save();
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = 'red';
+                ctx.fillText('TRACKING', rocket.x, rocket.y - 25);
+                ctx.restore();
             } else {
-                // Targeting right paddle
-                ctx.strokeStyle = 'rgba(255, 0, 0, 0.2)'; // Transparent red
-                ctx.setLineDash([5, 5]); // Dashed line
-                ctx.beginPath();
-                ctx.moveTo(rocket.x, rocket.y);
-                ctx.lineTo(rightPaddle.x, rightPaddle.y + rightPaddle.height/2);
-                ctx.stroke();
-                ctx.setLineDash([]); // Reset dash
+                // Show countdown until tracking starts
+                const timeUntilTracking = Math.max(0, (rocket.trackingDelay - rocketAge) / 1000).toFixed(1);
+                ctx.save();
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = 'yellow';
+                ctx.fillText(`TRACKING IN ${timeUntilTracking}s`, rocket.x, rocket.y - 25);
+                ctx.restore();
             }
         }
         
@@ -345,7 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
             rocket.rotation = 0; // Point right
         }
         
-        // Add a bit of warning by playing a sound (via emoji)
+        // Add a bit of warning via a flash message
         const warningEmoji = document.createElement('div');
         warningEmoji.textContent = "🚨 MISSILE INCOMING! 🚨";
         warningEmoji.style.position = 'absolute';
@@ -362,12 +431,31 @@ document.addEventListener('DOMContentLoaded', () => {
         warningEmoji.style.zIndex = '1000';
         document.body.appendChild(warningEmoji);
         
-        // Remove the warning after 1.5 seconds
+        // Show which player is targeted with an arrow
+        const targetMessage = document.createElement('div');
+        targetMessage.textContent = rocket.targetPlayer === 1 ? "⬅️ PLAYER 1" : "PLAYER 2 ➡️";
+        targetMessage.style.position = 'absolute';
+        targetMessage.style.top = '40px';
+        targetMessage.style.left = '50%';
+        targetMessage.style.transform = 'translateX(-50%)';
+        targetMessage.style.color = 'yellow';
+        targetMessage.style.fontSize = '16px';
+        targetMessage.style.fontWeight = 'bold';
+        targetMessage.style.textShadow = '0 0 8px red';
+        targetMessage.style.padding = '3px';
+        targetMessage.style.borderRadius = '5px';
+        targetMessage.style.backgroundColor = 'rgba(0,0,0,0.5)';
+        targetMessage.style.zIndex = '1000';
+        document.body.appendChild(targetMessage);
+        
+        // Remove the warnings after 2.5 seconds
         setTimeout(() => {
             document.body.removeChild(warningEmoji);
-        }, 1500);
+            document.body.removeChild(targetMessage);
+        }, 2500);
         
         rocket.active = true;
+        rocket.activationTime = Date.now();
         lastRocketTime = Date.now();
     }
     
@@ -398,38 +486,71 @@ document.addEventListener('DOMContentLoaded', () => {
             rocket.x += rocket.baseSpeed;
         }
         
-        // Heat-seeking behavior - adjust vertical position to track the paddle
-        const deltaY = targetY - rocket.y;
+        // Heat-seeking behavior - but only after a delay for initial straight flight
+        const rocketAge = Date.now() - rocket.activationTime;
         
-        // Move toward the paddle's Y position, but with some tracking limits for game balance
-        if (Math.abs(deltaY) > 5) { // Small buffer to prevent jitter
-            rocket.y += Math.sign(deltaY) * Math.min(Math.abs(deltaY) * 0.1, rocket.trackingSpeed);
+        if (rocketAge > rocket.trackingDelay) {
+            // Calculate how much to track based on distance from paddle
+            // The further away, the less precise tracking (more chance to dodge)
+            const distX = Math.abs(targetX - rocket.x);
+            const trackingFactor = Math.min(1.0, (canvas.width - distX) / canvas.width * 1.5);
+            
+            const deltaY = targetY - rocket.y;
+            
+            // Move toward the paddle's Y position, but with reduced accuracy based on distance
+            if (Math.abs(deltaY) > 8) { // Larger buffer to prevent jitter and make dodging easier
+                // Calculate tracking speed with distance-based factor and apply maximum speed limit
+                const adjustedSpeed = Math.min(
+                    Math.abs(deltaY) * 0.08 * trackingFactor, 
+                    rocket.trackingSpeed
+                );
+                
+                rocket.y += Math.sign(deltaY) * adjustedSpeed;
+            }
+            
+            // Calculate rotation angle based on movement direction (for visual effect)
+            const angle = Math.atan2(targetY - rocket.y, targetX - rocket.x) * 180 / Math.PI;
+            
+            // Smoother rotation - move gradually toward the target angle
+            const currentAngle = rocket.rotation;
+            const angleDiff = angle - currentAngle;
+            
+            // Normalize angle difference to -180 to 180
+            const normalizedDiff = ((angleDiff + 180) % 360) - 180;
+            
+            // Apply a portion of the rotation each frame for smoother turning
+            rocket.rotation += normalizedDiff * 0.1;
         }
         
-        // Calculate rotation angle based on movement direction (for visual effect)
+        // Check for paddle collisions with improved accuracy
         if (rocket.targetPlayer === 1) {
-            // Calculate angle from horizontal for left-moving rocket
-            const angle = Math.atan2(targetY - rocket.y, targetX - rocket.x) * 180 / Math.PI;
-            rocket.rotation = angle;
+            // More precise collision check for left paddle
+            const paddleLeft = paddle.x;
+            const paddleRight = paddle.x + paddle.width;
+            const paddleTop = paddle.y;
+            const paddleBottom = paddle.y + paddle.height;
+            
+            // Check if the rocket is close to the paddle
+            if (rocket.x <= paddleRight && 
+                rocket.x >= paddleLeft - 10 && // Give a bit of leeway
+                rocket.y >= paddleTop - 10 &&
+                rocket.y <= paddleBottom + 10) {
+                rocketHit(1);
+            }
         } else {
-            // Calculate angle from horizontal for right-moving rocket
-            const angle = Math.atan2(targetY - rocket.y, targetX - rocket.x) * 180 / Math.PI;
-            rocket.rotation = angle;
-        }
-        
-        // Check for paddle collisions
-        if (rocket.targetPlayer === 1 && 
-            rocket.x <= paddle.x + paddle.width && 
-            rocket.y >= paddle.y && 
-            rocket.y <= paddle.y + paddle.height) {
-            // Collision with left paddle (player 1)
-            rocketHit(1);
-        } else if (rocket.targetPlayer === 2 && 
-                  rocket.x >= rightPaddle.x - rocket.width/2 && 
-                  rocket.y >= rightPaddle.y && 
-                  rocket.y <= rightPaddle.y + rightPaddle.height) {
-            // Collision with right paddle (player 2)
-            rocketHit(2);
+            // More precise collision check for right paddle
+            const paddleLeft = rightPaddle.x;
+            const paddleRight = rightPaddle.x + rightPaddle.width;
+            const paddleTop = rightPaddle.y;
+            const paddleBottom = rightPaddle.y + rightPaddle.height;
+            
+            // Check if the rocket is close to the paddle
+            if (rocket.x >= paddleLeft - 10 && // Give a bit of leeway
+                rocket.x <= paddleRight + 10 &&
+                rocket.y >= paddleTop - 10 &&
+                rocket.y <= paddleBottom + 10) {
+                rocketHit(2);
+            }
         }
         
         // Check if rocket is off screen (missed)
