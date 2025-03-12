@@ -68,7 +68,8 @@ document.addEventListener('DOMContentLoaded', () => {
         width: 30,
         height: 20,
         active: false,
-        speed: 8,
+        baseSpeed: 3.5, // Base horizontal speed (slower to allow for tracking)
+        trackingSpeed: 2, // How quickly it adjusts to follow the paddle
         targetPlayer: 1, // 1 or 2 to indicate which player is targeted
         emoji: '🚀',
         explosionEmoji: '💥',
@@ -77,7 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
         explosionX: 0,
         explosionY: 0,
         explosionTime: 0,
-        explosionDuration: 1000 // 1 second for explosion animation
+        explosionDuration: 1000, // 1 second for explosion animation
+        rotation: 0 // Angle of the rocket in degrees
     };
     
     // Right paddle properties (AI in 1P mode, Player 2 in 2P mode)
@@ -260,10 +262,46 @@ document.addEventListener('DOMContentLoaded', () => {
     // Draw rocket
     function drawRocket() {
         if (rocket.active) {
+            ctx.save(); // Save current state
+            
+            // Move to rocket position
+            ctx.translate(rocket.x, rocket.y);
+            
+            // Rotate based on direction
+            ctx.rotate(rocket.rotation * Math.PI / 180);
+            
+            // Draw the rocket emoji
             ctx.font = `${rocket.width}px Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(rocket.emoji, rocket.x, rocket.y);
+            ctx.fillText(rocket.emoji, 0, 0);
+            
+            // Draw a small flame trail behind the rocket
+            ctx.font = `${rocket.width * 0.6}px Arial`;
+            ctx.fillText('🔥', -rocket.width * 0.6, 0);
+            
+            ctx.restore(); // Restore canvas state
+            
+            // Draw targeting line (heat seeking visualization)
+            if (rocket.targetPlayer === 1) {
+                // Targeting left paddle
+                ctx.strokeStyle = 'rgba(255, 0, 0, 0.2)'; // Transparent red
+                ctx.setLineDash([5, 5]); // Dashed line
+                ctx.beginPath();
+                ctx.moveTo(rocket.x, rocket.y);
+                ctx.lineTo(paddle.x, paddle.y + paddle.height/2);
+                ctx.stroke();
+                ctx.setLineDash([]); // Reset dash
+            } else {
+                // Targeting right paddle
+                ctx.strokeStyle = 'rgba(255, 0, 0, 0.2)'; // Transparent red
+                ctx.setLineDash([5, 5]); // Dashed line
+                ctx.beginPath();
+                ctx.moveTo(rocket.x, rocket.y);
+                ctx.lineTo(rightPaddle.x, rightPaddle.y + rightPaddle.height/2);
+                ctx.stroke();
+                ctx.setLineDash([]); // Reset dash
+            }
         }
         
         // Draw explosion if active
@@ -296,16 +334,38 @@ document.addEventListener('DOMContentLoaded', () => {
         rocket.targetPlayer = Math.random() < 0.5 ? 1 : 2;
         
         if (rocket.targetPlayer === 1) {
-            // Rocket coming from right
+            // Rocket coming from right side of screen to target player 1
             rocket.x = canvas.width;
             rocket.y = Math.random() * canvas.height;
-            rocket.speed = -8; // Move left
+            rocket.rotation = 180; // Point left
         } else {
-            // Rocket coming from left
+            // Rocket coming from left side of screen to target player 2
             rocket.x = 0;
             rocket.y = Math.random() * canvas.height;
-            rocket.speed = 8; // Move right
+            rocket.rotation = 0; // Point right
         }
+        
+        // Add a bit of warning by playing a sound (via emoji)
+        const warningEmoji = document.createElement('div');
+        warningEmoji.textContent = "🚨 MISSILE INCOMING! 🚨";
+        warningEmoji.style.position = 'absolute';
+        warningEmoji.style.top = '10px';
+        warningEmoji.style.left = '50%';
+        warningEmoji.style.transform = 'translateX(-50%)';
+        warningEmoji.style.color = 'red';
+        warningEmoji.style.fontSize = '20px';
+        warningEmoji.style.fontWeight = 'bold';
+        warningEmoji.style.textShadow = '0 0 10px white';
+        warningEmoji.style.padding = '5px';
+        warningEmoji.style.borderRadius = '5px';
+        warningEmoji.style.backgroundColor = 'rgba(0,0,0,0.5)';
+        warningEmoji.style.zIndex = '1000';
+        document.body.appendChild(warningEmoji);
+        
+        // Remove the warning after 1.5 seconds
+        setTimeout(() => {
+            document.body.removeChild(warningEmoji);
+        }, 1500);
         
         rocket.active = true;
         lastRocketTime = Date.now();
@@ -321,11 +381,40 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // Update position
+        // Calculate target paddle position (center of paddle)
+        let targetX, targetY;
+        
         if (rocket.targetPlayer === 1) {
-            rocket.x += rocket.speed; // Move left
+            targetX = paddle.x;
+            targetY = paddle.y + paddle.height / 2;
+            
+            // Move horizontally toward the paddle
+            rocket.x -= rocket.baseSpeed;
         } else {
-            rocket.x += rocket.speed; // Move right
+            targetX = rightPaddle.x;
+            targetY = rightPaddle.y + rightPaddle.height / 2;
+            
+            // Move horizontally toward the paddle
+            rocket.x += rocket.baseSpeed;
+        }
+        
+        // Heat-seeking behavior - adjust vertical position to track the paddle
+        const deltaY = targetY - rocket.y;
+        
+        // Move toward the paddle's Y position, but with some tracking limits for game balance
+        if (Math.abs(deltaY) > 5) { // Small buffer to prevent jitter
+            rocket.y += Math.sign(deltaY) * Math.min(Math.abs(deltaY) * 0.1, rocket.trackingSpeed);
+        }
+        
+        // Calculate rotation angle based on movement direction (for visual effect)
+        if (rocket.targetPlayer === 1) {
+            // Calculate angle from horizontal for left-moving rocket
+            const angle = Math.atan2(targetY - rocket.y, targetX - rocket.x) * 180 / Math.PI;
+            rocket.rotation = angle;
+        } else {
+            // Calculate angle from horizontal for right-moving rocket
+            const angle = Math.atan2(targetY - rocket.y, targetX - rocket.x) * 180 / Math.PI;
+            rocket.rotation = angle;
         }
         
         // Check for paddle collisions
@@ -344,8 +433,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Check if rocket is off screen (missed)
-        if ((rocket.targetPlayer === 1 && rocket.x < 0) || 
-            (rocket.targetPlayer === 2 && rocket.x > canvas.width)) {
+        if ((rocket.targetPlayer === 1 && rocket.x < -50) || 
+            (rocket.targetPlayer === 2 && rocket.x > canvas.width + 50)) {
             rocket.active = false;
         }
     }
