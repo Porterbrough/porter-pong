@@ -65,7 +65,8 @@ document.addEventListener('DOMContentLoaded', () => {
         maxSpeedMultiplier: 1.6, // Cap the maximum speed (60% faster than start)
         incrementFactor: 0.01, // How much to increase on each hit (smaller = slower increase)
         color: '#FFF',
-        emoji: '😊'  // Smiley face emoji
+        emoji: '😊',  // Smiley face emoji
+        frozen: false // Track frozen state in the ball object
     };
     
     // Rocket properties
@@ -94,7 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Track original ball speeds to restore after rocket passes
     let originalBallSpeedX = 0;
     let originalBallSpeedY = 0;
-    let ballFrozen = false;
     
     // Right paddle properties (AI in 1P mode, Player 2 in 2P mode)
     const rightPaddle = {
@@ -486,24 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             ctx.restore();
             
-            // Add tracking indicator
-            if (isTracking) {
-                ctx.save();
-                ctx.font = '12px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillStyle = 'red';
-                ctx.fillText('TRACKING', rocket.x, rocket.y - 25);
-                ctx.restore();
-            } else {
-                // Show countdown until tracking starts
-                const timeUntilTracking = Math.max(0, (rocket.trackingDelay - rocketAge) / 1000).toFixed(1);
-                ctx.save();
-                ctx.font = '12px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillStyle = 'yellow';
-                ctx.fillText(`TRACKING IN ${timeUntilTracking}s`, rocket.x, rocket.y - 25);
-                ctx.restore();
-            }
+            // No tracking indicator text
         }
         
         // Draw explosion if active
@@ -553,58 +536,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Store the ball's current speed before freezing it
-        if (!ballFrozen) {
+        if (!ball.frozen) {
             originalBallSpeedX = ball.speedX;
             originalBallSpeedY = ball.speedY;
             
             // Freeze the ball
             ball.speedX = 0;
             ball.speedY = 0;
-            ballFrozen = true;
-            
-            // Show a freeze message
-            showPenaltyMessage("BALL FROZEN!");
+            ball.frozen = true;
         }
         
-        // Add a bit of warning via a flash message
-        const warningEmoji = document.createElement('div');
-        warningEmoji.textContent = "🚨 MISSILE INCOMING! 🚨";
-        warningEmoji.style.position = 'absolute';
-        warningEmoji.style.top = '10px';
-        warningEmoji.style.left = '50%';
-        warningEmoji.style.transform = 'translateX(-50%)';
-        warningEmoji.style.color = 'red';
-        warningEmoji.style.fontSize = '20px';
-        warningEmoji.style.fontWeight = 'bold';
-        warningEmoji.style.textShadow = '0 0 10px white';
-        warningEmoji.style.padding = '5px';
-        warningEmoji.style.borderRadius = '5px';
-        warningEmoji.style.backgroundColor = 'rgba(0,0,0,0.5)';
-        warningEmoji.style.zIndex = '1000';
-        document.body.appendChild(warningEmoji);
-        
-        // Show which player is targeted with an arrow
-        const targetMessage = document.createElement('div');
-        targetMessage.textContent = rocket.targetPlayer === 1 ? "⬅️ PLAYER 1" : "PLAYER 2 ➡️";
-        targetMessage.style.position = 'absolute';
-        targetMessage.style.top = '40px';
-        targetMessage.style.left = '50%';
-        targetMessage.style.transform = 'translateX(-50%)';
-        targetMessage.style.color = 'yellow';
-        targetMessage.style.fontSize = '16px';
-        targetMessage.style.fontWeight = 'bold';
-        targetMessage.style.textShadow = '0 0 8px red';
-        targetMessage.style.padding = '3px';
-        targetMessage.style.borderRadius = '5px';
-        targetMessage.style.backgroundColor = 'rgba(0,0,0,0.5)';
-        targetMessage.style.zIndex = '1000';
-        document.body.appendChild(targetMessage);
-        
-        // Remove the warnings after 2.5 seconds
-        setTimeout(() => {
-            document.body.removeChild(warningEmoji);
-            document.body.removeChild(targetMessage);
-        }, 2500);
         
         rocket.active = true;
         rocket.activationTime = Date.now();
@@ -620,14 +561,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             // If no rocket is active but ball is still frozen, unfreeze it
-            if (ballFrozen && !rocket.explosionActive) {
-                // Restore ball speed with a slight boost
-                ball.speedX = originalBallSpeedX * 1.3; // 30% faster than before
-                ball.speedY = originalBallSpeedY * 1.3;
-                ballFrozen = false;
-                
-                // Show a speed boost message
-                showPenaltyMessage("SPEED BOOST!");
+            if (ball.frozen && !rocket.explosionActive) {
+                // Restore ball speed without boost
+                ball.speedX = originalBallSpeedX;
+                ball.speedY = originalBallSpeedY;
+                ball.frozen = false;
             }
             
             return;
@@ -721,6 +659,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if ((rocket.targetPlayer === 1 && rocket.x < -50) || 
             (rocket.targetPlayer === 2 && rocket.x > canvas.width + 50)) {
             rocket.active = false;
+            
+            // Unfreeze ball immediately when rocket goes off screen
+            if (ball.frozen) {
+                ball.speedX = originalBallSpeedX;
+                ball.speedY = originalBallSpeedY;
+                ball.frozen = false;
+            }
         }
     }
     
@@ -764,8 +709,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
+        // Remove any inline styles that might be interfering
+        winnerText.style = '';
+        winnerMessage.style = '';
+        
         // Show win screen
-        winScreen.setAttribute('style', 'display: flex !important; visibility: visible !important');
+        winScreen.setAttribute('style', 'display: flex !important; visibility: visible !important;');
         startButton.textContent = 'Start New Game';
     }
     
@@ -791,7 +740,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ball.speedMultiplier = 1.0; // Reset the speed multiplier
         
         // Reset frozen state
-        ballFrozen = false;
+        ball.frozen = false;
         originalBallSpeedX = 0;
         originalBallSpeedY = 0;
         
@@ -1081,8 +1030,12 @@ document.addEventListener('DOMContentLoaded', () => {
             winnerMessage.textContent = 'You reached 10 points! Amazing job!';
         }
         
+        // Remove any inline styles that might be interfering
+        winnerText.style = '';
+        winnerMessage.style = '';
+        
         // Make sure the win screen is visible
-        winScreen.setAttribute('style', 'display: flex !important; visibility: visible !important');
+        winScreen.setAttribute('style', 'display: flex !important; visibility: visible !important;');
         
         // Reset button text for next game
         startButton.textContent = 'Start New Game';
@@ -1097,15 +1050,13 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // If rocket explosion just finished, make sure the ball is unfrozen with a speed boost
-        if (!rocket.active && !rocket.explosionActive && ballFrozen) {
-            // Restore ball speed with a boost
-            ball.speedX = originalBallSpeedX * 1.3; // 30% faster than before
-            ball.speedY = originalBallSpeedY * 1.3;
-            ballFrozen = false;
-            
-            // Show a speed boost message
-            showPenaltyMessage("SPEED BOOST!");
+        // If rocket explosion just finished, make sure the ball is unfrozen
+        // Ball should already be unfrozen by this point, but just in case
+        if (!rocket.active && !rocket.explosionActive && ball.frozen) {
+            // Restore ball speed with no boost
+            ball.speedX = originalBallSpeedX;
+            ball.speedY = originalBallSpeedY;
+            ball.frozen = false;
         }
         
         // Clear canvas
@@ -1161,16 +1112,22 @@ document.addEventListener('DOMContentLoaded', () => {
         drawPaddle(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height, rightPaddle.color);
         drawBall(ball.x, ball.y, ball.radius, ball.color);
         
-        // Update and draw rocket
+        // Update rocket first - this may freeze the ball
         updateRocket();
+        
+        // Update ball position only if not frozen
+        if (!ball.frozen) {
+            ball.x += ball.speedX * ball.speedMultiplier;
+            ball.y += ball.speedY * ball.speedMultiplier;
+        }
+        
+        // Draw rocket after ball position update
         drawRocket();
         
-        // Update ball position, applying the global speed multiplier
-        ball.x += ball.speedX * ball.speedMultiplier;
-        ball.y += ball.speedY * ball.speedMultiplier;
-        
-        // Check for collisions
-        collisionDetection();
+        // Check for collisions only if ball is moving
+        if (!ball.frozen) {
+            collisionDetection();
+        }
         
         // Update AI in one-player mode
         if (!isTwoPlayerMode) {

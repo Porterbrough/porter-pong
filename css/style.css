@@ -130,22 +130,32 @@ canvas {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    text-align: center;
     z-index: 10;
     border-radius: 5px;
     visibility: hidden; /* Additional hiding property */
 }
 
-.win-screen h1 {
+.winner-title {
     font-size: 48px;
+    font-weight: bold;
     margin-bottom: 20px;
+    margin-left: 600px;
     color: #4CAF50;
     text-shadow: 0 0 10px #4CAF50;
     animation: pulse 1.5s infinite alternate;
+    text-align: center;
+    width: 100%;
+    display: block;
 }
 
 .win-screen p {
     font-size: 24px;
     margin-bottom: 30px;
+    text-align: center;
+    width: 100%;
+    padding: 0 20px;
+    box-sizing: border-box;
 }
 
 .win-screen button {

@@ -7,6 +7,12 @@
 - Always run `git pull` before making changes to avoid conflicts
 - After making changes: `git add .`, `git commit -m "Description"`, `git push`
 
+## Git Workflow
+- Do not commit or push automatically
+- Ask for confirmation before committing/pushing changes
+- When reaching a good checkpoint, ask if changes should be published
+- Only proceed with git commit/push when explicitly approved
+
 ## Code Style & Organization
 - **JavaScript**: Use ES6+ features with consistent 4-space indentation
 - **Naming**: camelCase for variables/functions (e.g., `gameLoop`, `resetBall`), PascalCase for classes
