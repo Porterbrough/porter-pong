@@ -546,6 +546,27 @@ document.addEventListener('DOMContentLoaded', () => {
             ball.frozen = true;
         }
         
+        // Add a bit of warning via a flash message
+        const warningEmoji = document.createElement('div');
+        warningEmoji.textContent = "🚨 MISSILE INCOMING! 🚨";
+        warningEmoji.style.position = 'absolute';
+        warningEmoji.style.top = '10px';
+        warningEmoji.style.left = '50%';
+        warningEmoji.style.transform = 'translateX(-50%)';
+        warningEmoji.style.color = 'red';
+        warningEmoji.style.fontSize = '20px';
+        warningEmoji.style.fontWeight = 'bold';
+        warningEmoji.style.textShadow = '0 0 10px white';
+        warningEmoji.style.padding = '5px';
+        warningEmoji.style.borderRadius = '5px';
+        warningEmoji.style.backgroundColor = 'rgba(0,0,0,0.5)';
+        warningEmoji.style.zIndex = '1000';
+        document.body.appendChild(warningEmoji);
+        
+        // Remove the warning after 2.5 seconds
+        setTimeout(() => {
+            document.body.removeChild(warningEmoji);
+        }, 2500);
         
         rocket.active = true;
         rocket.activationTime = Date.now();
@@ -558,9 +579,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // Check if it's time to launch a new rocket
             if (gameRunning && Date.now() > lastRocketTime + ROCKET_INTERVAL) {
                 launchRocket();
+                
+                // Important: After launching the rocket, it's now active, so we should exit the "!rocket.active" block
+                if (rocket.active) {
+                    return;
+                }
             }
             
-            // If no rocket is active but ball is still frozen, unfreeze it
+            // Only unfreeze the ball if the rocket truly isn't active and wasn't just launched
             if (ball.frozen && !rocket.explosionActive) {
                 // Restore ball speed without boost
                 ball.speedX = originalBallSpeedX;
@@ -1051,7 +1077,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // If rocket explosion just finished, make sure the ball is unfrozen
-        // Ball should already be unfrozen by this point, but just in case
         if (!rocket.active && !rocket.explosionActive && ball.frozen) {
             // Restore ball speed with no boost
             ball.speedX = originalBallSpeedX;
@@ -1123,6 +1148,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Draw rocket after ball position update
         drawRocket();
+        
         
         // Check for collisions only if ball is moving
         if (!ball.frozen) {
