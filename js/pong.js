@@ -330,39 +330,33 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Exit button (in win screen)
     exitButton.addEventListener('click', () => {
-        // Close the window or navigate away
-        if (window.confirm('Are you sure you want to exit the game?')) {
-            // In a real environment, we'd close the window or navigate away
-            // For the web version, we'll just reset everything and hide the win screen
-            
-            // Make sure game is stopped
-            gameRunning = false;
-            
-            // Cancel any existing animation frame
-            if (animationId !== null) {
-                cancelAnimationFrame(animationId);
-                animationId = null;
-            }
-            
-            // Cancel any existing countdown
-            if (countdownTimer) {
-                clearInterval(countdownTimer);
-                const existingCountdown = document.getElementById('countdown');
-                if (existingCountdown) {
-                    document.body.removeChild(existingCountdown);
-                }
-                countdownActive = false;
-            }
-            
-            // Reset the game state
-            resetGame();
-            
-            // Hide the win screen
-            winScreen.style.display = 'none';
-            
-            // Reset button text
-            startButton.textContent = 'Start Game';
+        // Make sure game is stopped
+        gameRunning = false;
+        
+        // Cancel any existing animation frame
+        if (animationId !== null) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
         }
+        
+        // Cancel any existing countdown
+        if (countdownTimer) {
+            clearInterval(countdownTimer);
+            const existingCountdown = document.getElementById('countdown');
+            if (existingCountdown) {
+                document.body.removeChild(existingCountdown);
+            }
+            countdownActive = false;
+        }
+        
+        // Reset the game state
+        resetGame();
+        
+        // Hide the win screen
+        winScreen.style.display = 'none';
+        
+        // Reset button text
+        startButton.textContent = 'Start Game';
     });
     
     // Draw functions
