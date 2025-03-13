@@ -924,14 +924,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 player1Score = Math.max(0, player1Score - 3);
                 score1Display.textContent = player1Score;
                 
-                // In one player mode, AI gets 2 points when player misses
-                player2Score += 2;
-                score2Display.textContent = player2Score;
+                // No points for AI when player misses
                 
                 // Show a penalty message
-                showPenaltyMessage("MISS! -3 POINTS, AI +2 POINTS");
+                showPenaltyMessage("MISS! -3 POINTS");
                 
-                // Check if AI wins
+                // Check if AI wins (still check in case AI has points from hitting the ball)
                 if (player2Score >= winScore) {
                     // Game over - AI wins
                     gameRunning = false;
