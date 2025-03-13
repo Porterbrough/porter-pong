@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const score2Display = document.getElementById('score2');
     const startButton = document.getElementById('startButton');
     const winScreen = document.getElementById('winScreen');
-    const playAgainButton = document.getElementById('playAgainButton');
+    const exitButton = document.getElementById('exitButton');
     const onePlayerButton = document.getElementById('onePlayerButton');
     const twoPlayerButton = document.getElementById('twoPlayerButton');
     const emojiButton = document.getElementById('emojiButton');
@@ -328,46 +328,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 100);
     });
     
-    // Play again button (in win screen)
-    playAgainButton.addEventListener('click', () => {
-        // Make sure game is stopped
-        gameRunning = false;
-        
-        // Cancel any existing animation frame
-        if (animationId !== null) {
-            cancelAnimationFrame(animationId);
-            animationId = null;
-        }
-        
-        // Cancel any existing countdown
-        if (countdownTimer) {
-            clearInterval(countdownTimer);
-            const existingCountdown = document.getElementById('countdown');
-            if (existingCountdown) {
-                document.body.removeChild(existingCountdown);
+    // Exit button (in win screen)
+    exitButton.addEventListener('click', () => {
+        // Close the window or navigate away
+        if (window.confirm('Are you sure you want to exit the game?')) {
+            // In a real environment, we'd close the window or navigate away
+            // For the web version, we'll just reset everything and hide the win screen
+            
+            // Make sure game is stopped
+            gameRunning = false;
+            
+            // Cancel any existing animation frame
+            if (animationId !== null) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
             }
-            countdownActive = false;
-        }
-        
-        // Immediately clear the canvas for visual feedback
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Use the same reliable two-step restart pattern
-        setTimeout(() => {
-            // Complete reset
+            
+            // Cancel any existing countdown
+            if (countdownTimer) {
+                clearInterval(countdownTimer);
+                const existingCountdown = document.getElementById('countdown');
+                if (existingCountdown) {
+                    document.body.removeChild(existingCountdown);
+                }
+                countdownActive = false;
+            }
+            
+            // Reset the game state
             resetGame();
+            
+            // Hide the win screen
             winScreen.style.display = 'none';
-            startButton.textContent = 'Restart Game';
             
-            // Draw initial state
-            drawNet();
-            drawPaddle(paddle.x, paddle.y, paddle.width, paddle.height, paddle.color);
-            drawPaddle(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height, rightPaddle.color);
-            drawBall(ball.x, ball.y, ball.radius, ball.color);
-            
-            // Start countdown instead of immediately starting the game
-            startCountdown();
-        }, 100);
+            // Reset button text
+            startButton.textContent = 'Start Game';
+        }
     });
     
     // Draw functions
