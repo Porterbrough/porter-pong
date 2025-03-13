@@ -874,6 +874,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
             } else {
+                // In one player mode, computer scores points too
+                player2Score++;
+                score2Display.textContent = player2Score;
+                
+                // Check for win condition for player 2 (AI)
+                if (player2Score >= winScore) {
+                    // Game over - AI wins
+                    gameRunning = false;
+                    winnerText.textContent = 'GAME OVER!';
+                    winnerMessage.textContent = 'The AI reached 10 points first!';
+                    winScreen.setAttribute('style', 'display: flex !important; visibility: visible !important;');
+                    startButton.textContent = 'Start New Game';
+                    return;
+                }
+                
                 // In one player mode (against AI), small increase on AI paddle hits
                 ball.speedX *= 1.03;
                 
@@ -905,12 +920,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 resetBall();
             } else {
-                // In one player mode, subtract 3 points and continue
+                // In one player mode, subtract 3 points from player 1
                 player1Score = Math.max(0, player1Score - 3);
                 score1Display.textContent = player1Score;
                 
+                // In one player mode, AI gets 2 points when player misses
+                player2Score += 2;
+                score2Display.textContent = player2Score;
+                
                 // Show a penalty message
-                showPenaltyMessage("MISS! -3 POINTS");
+                showPenaltyMessage("MISS! -3 POINTS, AI +2 POINTS");
+                
+                // Check if AI wins
+                if (player2Score >= winScore) {
+                    // Game over - AI wins
+                    gameRunning = false;
+                    winnerText.textContent = 'GAME OVER!';
+                    winnerMessage.textContent = 'The AI reached 10 points first!';
+                    winScreen.setAttribute('style', 'display: flex !important; visibility: visible !important;');
+                    startButton.textContent = 'Start New Game';
+                    return;
+                }
                 
                 // Reset ball position and continue
                 resetBall();
