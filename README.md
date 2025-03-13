@@ -6,7 +6,7 @@ A fun Pong game with single-player and two-player modes!
 
 ### Play Online (Recommended)
 
-Visit the game at: https://YOUR-USERNAME.github.io/pong-game/
+Visit the game at: https://porterbrough.github.io/porter-pong/
 
 Simply type this URL in your browser to play instantly, no download required!
 
